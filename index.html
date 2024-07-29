@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Library</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Your Spotify Library</h1>
+        <form id="addForm">
+            <input type="text" id="link" placeholder="Add Spotify Link" required>
+            <button type="submit">Add</button>
+        </form>
+        <input type="text" id="search" placeholder="Search your library">
+        <div class="button-group">
+            <button id="clearLibrary">Clear Library</button>
+            <button id="showInstructions">How to Add Links</button>
+        </div>
+        <div id="libraryContainer">
+            <div id="library"></div>
+        </div>
+    </div>
+
+    <div id="instructionsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>How to Import a Spotify Link</h2>
+            <p>To add a Spotify track, playlist, or episode to your library:</p>
+            <ol>
+                <li>Open Spotify and find the track, playlist, or episode you want to add.</li>
+                <li>Click on the "Share" button and select "Copy Link."</li>
+                <li>Paste the copied link into the input field and click "Add."</li>
+            </ol>
+            <p>Note: The link will be automatically converted to an embeddable format.</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('addForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const link = document.getElementById('link').value;
+            const embedLink = convertToEmbedLink(link);
+            addLinkToLibrary(embedLink);
+            document.getElementById('link').value = '';
+        });
+
+        document.getElementById('clearLibrary').addEventListener('click', function() {
+            setLibraryInCookies([]);
+            renderLibrary([]);
+        });
+
+        document.getElementById('showInstructions').addEventListener('click', function() {
+            document.getElementById('instructionsModal').style.display = 'block';
+        });
+
+        document.querySelector('.close').addEventListener('click', function() {
+            document.getElementById('instructionsModal').style.display = 'none';
+        });
+
+        window.addEventListener('click', function(event) {
+            if (event.target === document.getElementById('instructionsModal')) {
+                document.getElementById('instructionsModal').style.display = 'none';
+            }
+        });
+
+        document.getElementById('search').addEventListener('input', function() {
+            const query = document.getElementById('search').value.toLowerCase();
+            filterLibrary(query);
+        });
+
+        function addLinkToLibrary(link) {
+            let library = getLibraryFromCookies();
+            library.push(link);
+            setLibraryInCookies(library);
+            renderLibrary(library);
+        }
+
+        function convertToEmbedLink(link) {
+            let embedLink = link;
+            if (link.includes('open.spotify.com/track/')) {
+                embedLink = link.replace('open.spotify.com/track/', 'open.spotify.com/embed/track/');
+            } else if (link.includes('open.spotify.com/playlist/')) {
+                embedLink = link.replace('open.spotify.com/playlist/', 'open.spotify.com/embed/playlist/');
+            } else if (link.includes('open.spotify.com/episode/')) {
+                embedLink = link.replace('open.spotify.com/episode/', 'open.spotify.com/embed/episode/');
+            }
+            return embedLink;
+        }
+
+        function getLibraryFromCookies() {
+            const library = document.cookie.split('; ').find(row => row.startsWith('library='));
+            return library ? JSON.parse(decodeURIComponent(library.split('=')[1])) : [];
+        }
+
+        function setLibraryInCookies(library) {
+            document.cookie = `library=${encodeURIComponent(JSON.stringify(library))}; path=/; max-age=${60*60*24*365}`;
+        }
+
+        function renderLibrary(library) {
+            const libraryDiv = document.getElementById('library');
+            libraryDiv.innerHTML = '';
+            library.forEach(link => {
+                libraryDiv.innerHTML += `<iframe style="border-radius:12px" src="${link}" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+            });
+        }
+
+        function filterLibrary(query) {
+            const library = getLibraryFromCookies();
+            const filteredLibrary = library.filter(link => link.toLowerCase().includes(query));
+            renderLibrary(filteredLibrary);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const library = getLibraryFromCookies();
+            renderLibrary(library);
+        });
+    </script>
+</body>
+</html>
